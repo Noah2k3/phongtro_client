@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import * as actions from '../../store/actions'
@@ -11,40 +12,45 @@ const ManagePost = () => {
   const [isEdit, setIsEdit] = useState(false)
   const { postOfCurrent, dataEdit } = useSelector(state => state.post)
   const [updateData, setUpdateData] = useState(false)
-  const [post, setPosts] = useState([])
+  const [posts, setPosts] = useState([])
   const [status, setStatus] = useState('')
 
   useEffect(() => {
     !dataEdit && dispatch(actions.getPostsLimitAdmin())
-  }, [dataEdit, updateData])
+  }, [dataEdit, dispatch, updateData])
+  // console.log(postOfCurrent);
+
   useEffect(() => {
-    setPosts(postOfCurrent)
+    setPosts(postOfCurrent || [])
   },[postOfCurrent])
 
   useEffect(() => {
     !dataEdit && setIsEdit(false)
   },[dataEdit])
+  
   const checkStatus = (dateString) => moment(dateString,process.env.REACT_APP_FORMAT_DATE).isSameOrAfter(new Date().toDateString())
   
   const handleDeletePost = async (postId) => {
-     const response = await apiDeletePost(postId)
-     if (response?.data.err === 0){
-        setUpdateData(prev => !prev)
-     }else{
-        Swal.fire('Oops!', 'Xóa tin thất bại', "error")
-     }
+    const response = await apiDeletePost(postId)
+    if (response?.data.err === 0){
+      setUpdateData(prev => !prev)
+    } else{
+      Swal.fire('Oops!', 'Xóa tin thất bại', "error")
+    }
   }
+
   useEffect(() => {
     if (status === 1){
-      const activePost = postOfCurrent?.filter(item => checkStatus(item?.overview?.expired?.split(' ')[3]))
-      setPosts(activePost)
-   } else if (status === 2) {
-     const expiredPost = postOfCurrent?.filter(item => !checkStatus(item?.overview?.expired?.split(' ')[3]))
-     setPosts(expiredPost)
-   } else {
-     setPosts(postOfCurrent)
-   } 
- },[status])
+      const activePost = postOfCurrent?.filter(item => checkStatus(item?.overviews?.expired?.split(' ')[3]))
+      setPosts(activePost  || [])
+    } else if (status === 2) {
+      const expiredPost = postOfCurrent?.filter(item => !checkStatus(item?.overviews?.expired?.split(' ')[3]))
+      setPosts(expiredPost || [])
+    } else {
+      setPosts(postOfCurrent || [])
+    } 
+ },[status, postOfCurrent])
+ 
   return (
     <div className='flex flex-col gap-6'>
         <div className='py-4 border-b border-gray-200 flex items-center justify-between'>
@@ -53,12 +59,11 @@ const ManagePost = () => {
             <option value="0">Lọc theo trạng thái</option>
             <option value="1">Đang hoạt động </option>
             <option value="2">Đã hết hạn </option>
-
           </select>
         </div>
         <table className="w-full table-auto">
           <thead>
-            <tr className='flex w-full'>
+            <tr className='flex w-full bg-gray-100'>
               <th className='border flex-1 p-2'>Mã tin</th>
               <th className='border flex-1 p-2'>Ảnh đại diện</th>
               <th className='border flex-1 p-2'>Tiêu đề</th>
@@ -70,23 +75,28 @@ const ManagePost = () => {
             </tr>
           </thead>
           <tbody>
-            {!post
-              ? <tr>
-                <td>aaaaaaaa</td>
-              </tr>
-              : post?.map(item => {
+          
+            {posts.length === 0
+              ? (<tr>
+                <td colSpan="8" className='text-center p-4'>Không có tin đăng</td>
+                </tr>
+              ): posts?.map(item => {
                 return (
                   <tr className='flex items-center h-16' key={item.id}>
-                    <td className='border px-2 flex-1 h-full flex justify-center items-center'>{item?.overview?.code}</td>
+                    <td className='border px-2 flex-1 h-full flex justify-center items-center'>{item?.overviews?.code}</td>
                     <td className='border px-2 flex-1 h-full flex items-center justify-center'>
-                      <img src={JSON.parse(item?.images?.image)[0] || ''} alt="avatar-post" className='w-10 h-10 object-cover rounded-md'/>
+                    {item?.images?.image ? (
+                        <img src={JSON.parse(item?.images?.image)[0] || ''} alt="avatar-post" className='w-10 h-10 object-cover rounded-md'/>
+                      ) : (
+                        <span>Không có ảnh</span>
+                      )}
                     </td>
                     <td className='border px-2 flex-1 h-full flex justify-center items-center'>{`${item?.title?.slice(0, 40)}...`}</td>
                     <td className='border px-2 flex-1 h-full flex justify-center items-center'>{item?.attributes?.price}</td>
-                    <td className='border px-2 flex-1 h-full flex justify-center items-center'>{item?.overview?.created}</td>
-                    <td className='border px-2 flex-1 h-full flex justify-center items-center'>{item?.overview?.expired}</td>
+                    <td className='border px-2 flex-1 h-full flex justify-center items-center'>{item?.overviews?.created}</td>
+                    <td className='border px-2 flex-1 h-full flex justify-center items-center'>{item?.overviews?.expired}</td>
                     <td className='border px-2 flex-1 h-full flex justify-center items-center'>
-                      {checkStatus(item?.overview?.expired?.split(' ')[3]) ? 'Đang hoạt động' : 'Đã hết hạn'}
+                      {checkStatus(item?.overviews?.expired?.split(' ')[3]) ? 'Đang hoạt động' : 'Đã hết hạn'}
                     </td>
                     <td className='border px-2 flex-1 h-full flex items-center justify-center gap-4'>
                       <Button
